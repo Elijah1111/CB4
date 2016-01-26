@@ -7,17 +7,19 @@ private:
 	const std::string autoNameDefault = "Default";
 	const std::string autoNameCustom = "My Auto";
 	double rightDrive, leftDrive, ax, ay, az, lift, dummy;
+	bool dumCam;
 	std::string autoSelected;
 	BuiltInAccelerometer *accel = new BuiltInAccelerometer();
 	Joystick *rightStick = new Joystick(0);
 	Joystick *leftStick  = new Joystick(1);
-
+	USBCamera *cam =new USBCamera("Camera",1);
 	Timer *timer =new Timer();
 	Talon *fRight = new Talon(0);
 	Talon *fLeft = new Talon(1);
 	Talon *bRight = new Talon(2);
 	Talon *bLeft = new Talon(3);
 	Talon *pickup = new Talon(4);
+	Talon *shoot =new Talon(5);
 	DigitalOutput *led1 = new DigitalOutput(1);
 	DigitalInput *limitswitch =new DigitalInput(2);
 	RobotDrive *robotDrive = new RobotDrive(fLeft, bLeft, fRight, bRight);
@@ -98,36 +100,51 @@ private:
 		ax = accel-> GetX();
 		ay = accel-> GetY();
 		az = accel-> GetZ();
+
+		bool triggerRight = rightStick->GetRawButton(1);
+		bool triggerLeft = leftStick->GetRawButton(1); // any idea why these are throwing errors? seems to not mess with build or clean
+		bool buttonLed = rightStick->GetRawButton(2);
+		bool buttonShoot = leftStick->GetRawButton(3);
+		bool buttonCam = rightStick->GetRawButton(4);
+
+		SmartDashboard::PutBoolean("trigger", triggerRight);
+		SmartDashboard::PutBoolean("trigger", triggerLeft);
+		SmartDashboard::PutBoolean("buttonLed", buttonLed);
+		SmartDashboard::PutBoolean("buttonShoot", buttonShoot);
+		SmartDashboard::PutBoolean("buttonCam", buttonCam);
 		SmartDashboard::PutData("Auto Modes", chooser);
 		SmartDashboard::PutNumber("ax",ax);
 		SmartDashboard::PutNumber("ay",ay);
 		SmartDashboard::PutNumber("az",az);
-		bool triggerRight = rightStick->GetRawButton(1);
-		bool triggerLeft = leftStick->GetRawButton(1); // any idea why these are throwing errors? seems to not mess with build or clean
-		bool buttonLed = rightStick->GetRawButton(2);
-		SmartDashboard::PutBoolean("trigger", triggerRight);
-		SmartDashboard::PutBoolean("trigger", triggerLeft);
-		SmartDashboard::PutBoolean("buttonLed", buttonLed);
 
 		if(triggerRight){
 			pickup->Set(1);
 		}
-		else{
-			pickup->Set(0);
-		}
-
-		if(triggerLeft){
+		else if(triggerLeft){
 			pickup->Set(-1);
 		}
 		else{
+			pickup->Set(0);
 		}
-
 		if(buttonLed){
 			led1->Pulse(1);
-
 		}
 		else{
 			led1->Pulse(0);
+		}
+		if (buttonCam==true && dumCam==false){
+			cam->StartCapture();
+		dumCam=true;
+		}
+		else if(buttonCam==false && dumCam==true){
+			dumCam=false;
+			cam->StopCapture();
+		}
+		if(buttonShoot){
+			shoot->Set(1);
+		}
+		else{
+			shoot->Set(0);
 		}
 	}
 	void TestPeriodic()
