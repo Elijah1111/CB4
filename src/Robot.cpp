@@ -177,6 +177,7 @@ if((r_enc<=Auto1_F)&&(l_enc<=Auto1_F)&& not forward1){
  				speed  = .7; //driving speed for finer control
  				shooterwheel->Reset();
  				rwheel->Reset();
+ 				lwheel->Reset();
  				howdy->Enabled();
  				piston_ramp->Set(DoubleSolenoid::Value::kOff);
  				piston->Set(DoubleSolenoid::Value::kOff);
@@ -191,7 +192,7 @@ if((r_enc<=Auto1_F)&&(l_enc<=Auto1_F)&& not forward1){
   	void TeleopPeriodic()
   	{
 
-
+  		auto_server=Auto_sel->GetValue();
  //DRIVE CONTROL
   		rightgo = rightDrive-> GetRawAxis(1);
  		leftgo  = leftDrive-> GetRawAxis(1);
@@ -359,6 +360,8 @@ if((r_enc<=Auto1_F)&&(l_enc<=Auto1_F)&& not forward1){
  		SmartDashboard::PutNumber("bx", bx_avg);
  		SmartDashboard::PutNumber("by", by_avg);
 
+ 		SmartDashboard::PutNumber("auto_server", auto_server);
+ 		SmartDashboard::PutData("lwheel", lwheel);
  		SmartDashboard::PutData("rwheel", rwheel);
  	 	SmartDashboard::PutNumber("shooterwheel", shotspeed);
 //SMASH DASHPORD
