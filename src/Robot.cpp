@@ -8,7 +8,7 @@
   class Robot: public IterativeRobot
   {
  private:
-	  	bool nitroL, nitroR,cam_button,cam_button1,ramp_in,ramp_out,cam;  //DrC, for speed boost in tank drive
+	  	bool nitroL, nitroR,cam_button,cam_button1,ramp_in,ramp_out,cam,cam_switcher;  //DrC, for speed boost in tank drive
 	  	bool pickup_pickup, piston_button,frame_act,button_led, speedgood,piston_button_prev; //DrC
 	  	int i, samples;
 	  	const std::string autoNameDefault = "Default";
@@ -29,6 +29,9 @@
 	  	IMAQdxSession session1;
 	  	Image *frame1;
 	  	IMAQdxError imaqError1;
+	  	IMAQdxSession session2;
+	  	Image *frame2;
+	 	IMAQdxError imaqError2;
 
 	  	Joystick *rightDrive = new Joystick(0,2,9);//DrC
 	  	Joystick *leftDrive  = new Joystick(1,2,9);//DrC
@@ -172,18 +175,18 @@ if((r_enc<=Auto1_F)&&(l_enc<=Auto1_F)&& not forward1){
  				swindow = .1; // window (percent) of starget to be good to fire ball! here .1 = 10percent
 // CALIBRATION
 
-
 //TELOP DECLERATIONS
  				speed  = .7; //driving speed for finer control
  				shooterwheel->Reset();
  				rwheel->Reset();
+ 				lwheel->Reset();
  				howdy->Enabled();
  				piston_ramp->Set(DoubleSolenoid::Value::kOff);
  				piston->Set(DoubleSolenoid::Value::kOff);
- 				frame_act=0;
+ 				frame_act=FALSE;
  				piston_button_prev=0;
  				cam=0;
-
+ 				cam_switcher=0;
 //TELOP DECLERATIONS
 
  	}
@@ -191,7 +194,7 @@ if((r_enc<=Auto1_F)&&(l_enc<=Auto1_F)&& not forward1){
   	void TeleopPeriodic()
   	{
 
-
+  		auto_server=Auto_sel->GetValue();
  //DRIVE CONTROL
   		rightgo = rightDrive-> GetRawAxis(1);
  		leftgo  = leftDrive-> GetRawAxis(1);
@@ -258,25 +261,23 @@ if((r_enc<=Auto1_F)&&(l_enc<=Auto1_F)&& not forward1){
 
 
  //PISTON CONTROL AREA
+ 		piston_button_prev = piston_button;
  		piston_button  = leftDrive-> GetRawButton(1);
  		ramp_in=gamePad->GetRawButton(4);
  	 	ramp_out=gamePad->GetRawButton(2);
- 	if((piston_button)&&(not piston_button_prev)&&(not frame_act))
- 		{
- 			frame_act= TRUE;
- 		}
- 	if((piston_button)&&(not piston_button_prev)&&(frame_act))
- 		{
- 			frame_act=FALSE;
- 		}
+
+		if((piston_button!=piston_button_prev)&&piston_button)
+	 		{
+	 			frame_act= not frame_act;
+	 		}
  	if(frame_act){
  		piston->Set(DoubleSolenoid::Value::kForward);
  		}
  	else{
- 			piston->Set(DoubleSolenoid::Value::kReverse);
+ 		piston->Set(DoubleSolenoid::Value::kReverse);
  		}
 
- piston_button_prev = piston_button;
+
 
  	if((ramp_in)&&(not ramp_out)){
  			piston_ramp->Set(DoubleSolenoid::Value::kForward);
@@ -307,29 +308,45 @@ if((r_enc<=Auto1_F)&&(l_enc<=Auto1_F)&& not forward1){
 //CAMERA CONTROL
  		cam_button=leftDrive->GetRawButton(2);
  		cam_button1=rightDrive->GetRawButton(2);
+ 		cam_switcher=leftDrive->GetRawButton(1);
 
  		if(cam_button&&not cam){
  			frame1 = imaqCreateImage(IMAQ_IMAGE_RGB, 0);
- 			imaqError1 = IMAQdxOpenCamera("cam3", IMAQdxCameraControlModeController, &session1);
+ 			imaqError1 = IMAQdxOpenCamera("cam3", IMAQdxCameraControlModeController, &session1);//elmo
  			if(imaqError1 != IMAQdxErrorSuccess) {
  				DriverStation::ReportError("IMAQdxOpenCamera error: " + std::to_string((long)imaqError1) + "\n");
  			}
  			imaqError1 = IMAQdxConfigureGrab(session1);
- 	 		IMAQdxStartAcquisition(session1);
-	        CameraServer::GetInstance()->SetImage(frame1);
-	 			IMAQdxStartAcquisition(session1);
-	 			 	 	 IMAQdxGrab(session1, frame1, true, NULL);
+
+ 		frame2 = imaqCreateImage(IMAQ_IMAGE_RGB, 0);
+ 	 	 	imaqError2 = IMAQdxOpenCamera("cam2", IMAQdxCameraControlModeController, &session2);//Hey there BERT
+ 	 	 if(imaqError2 != IMAQdxErrorSuccess) {
+ 	 	 	DriverStation::ReportError("IMAQdxOpenCamera error: " + std::to_string((long)imaqError2) + "\n");
+ 	 	 }
+ 	 	 imaqError2 = IMAQdxConfigureGrab(session2);
+
 	 			cam=1;
  		}
+
  		if(cam_button1&&not cam){
  			cam=1;
 
  		}
- 		if(cam){
- 			  CameraServer::GetInstance()->SetImage(frame1);
- 				IMAQdxStartAcquisition(session1);
+
+
+
+ 		if(cam&&not cam_switcher){
+ 			IMAQdxStartAcquisition(session1);
+ 			IMAQdxStopAcquisition(session2);
+ 			  CameraServer::GetInstance()->SetImage(frame1);//Elmo
  				 			IMAQdxGrab(session1, frame1, true, NULL);
  		}
+ 		if(cam&&cam_switcher){
+ 			IMAQdxStartAcquisition(session2);
+ 			IMAQdxStopAcquisition(session1);
+ 		 			  CameraServer::GetInstance()->SetImage(frame2);//Bert
+ 		 				 			IMAQdxGrab(session2, frame2, true, NULL);
+ 		 		}
 
 //CAM CONTROL
 
@@ -359,6 +376,8 @@ if((r_enc<=Auto1_F)&&(l_enc<=Auto1_F)&& not forward1){
  		SmartDashboard::PutNumber("bx", bx_avg);
  		SmartDashboard::PutNumber("by", by_avg);
 
+ 		SmartDashboard::PutNumber("auto_server", auto_server);
+ 		SmartDashboard::PutData("lwheel", lwheel);
  		SmartDashboard::PutData("rwheel", rwheel);
  	 	SmartDashboard::PutNumber("shooterwheel", shotspeed);
 //SMASH DASHPORD
