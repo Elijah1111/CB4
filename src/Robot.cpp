@@ -14,11 +14,11 @@
 	 	double leftgo,rightgo,speed,quality,Arm_in,Arm_out;  //DrC speed scales joysticks output to drive number
 	 	double ax, ay,az, bx,by, heading, boffsetx,boffsety, bscaley, bscalex, baveraging, bx_avg, by_avg, pd, strobe_on, strobe_off, reflectedLight, pi=4.0*atan(1.0), pickup_kickballout, shooterWheel, swheelspeed, shotspeed, savg, starget, swindow, pickupWheel, shooter_shoot; //FIX
 	 	double auto_F,auto_server,Autolow_F;//E Auto code variables
-	 	int r_enc,l_enc,shot_enc,auto_serversub,arm_dir;
+	 	int r_enc,l_enc,auto_serversub,arm_dir;
 		bool forward1,to_ramp;//things for auto
 		bool Arm_buttonin,Arm_buttonout,stop_arm,shooter_shootrev,rumble_button;
 		bool underglow_button,underglow_prev,underglow_sel;
-
+	  	double shotreader;
 	 	std::string autoSelected;
 
 	  	DoubleSolenoid *piston = new DoubleSolenoid(0,1);
@@ -70,17 +70,14 @@
 
 	  	LiveWindow *lw = LiveWindow::GetInstance();
 	  	SendableChooser *chooser = new SendableChooser();
-	  	const std::string autoNameDefault = "Low Bar§";
+	  	const std::string autoNameDefault = "Low Bar§";//needs fixed still broken
 	  	const std::string autoNameCustom = "FORWARD!!!!!!";
-
-
 
  	void RobotInit()
  		{
  			chooser->AddDefault(autoNameDefault, (void*)&autoNameDefault);
  			chooser->AddObject(autoNameCustom, (void*)&autoNameCustom);
  			SmartDashboard::PutData("Auto Modes", chooser);
-
  		}
 
 	void AutonomousInit()
@@ -229,6 +226,7 @@
  				underglow->Set(Relay::kOff);
  				arm_dir=0;
  				stop_arm=1;
+ 				shotspeed=0;
 
 //TELOP DECLERATIONS
  	}
@@ -238,6 +236,7 @@
 
   		r_enc=lwheel->GetRaw();
   	  	l_enc=rwheel->GetRaw();
+
 /*  		auto_server=Auto_sel->GetValue();  // for testing only
   	 if(auto_server<=300){
 	    auto_serversub=1;
@@ -255,6 +254,7 @@
  		nitroL   = leftDrive-> GetRawButton(3);
  		rightgo = -(speed+(1.0-speed)*(double)(nitroR))*rightgo;
  		leftgo  = -(speed+(1.0-speed)*(double)(nitroL))*leftgo;
+
  		robotDrive->TankDrive(rightgo, leftgo);
 //DRIVE CONTROL
 
@@ -295,18 +295,10 @@
 //SHOOTER WHEEL
  		shooter_shoot = gamePad -> GetRawButton(6);
  		shooter_shootrev =gamePad->GetRawButton(5);
-  		shot_enc=shooterwheel->GetRaw();
-  		rumble_button=gamePad->GetRawButton(7);
-  		if(rumble_button){
-  			gamePad->SetRumble(Joystick::RumbleType::kRightRumble,1);
-  			gamePad->SetRumble(Joystick::RumbleType::kLeftRumble,1);
-  		}
-  		else{
-  			gamePad->SetRumble(Joystick::RumbleType::kRightRumble,0);
-  		  	gamePad->SetRumble(Joystick::RumbleType::kLeftRumble,0);
-  		}
+
  		if(shooter_shoot&&not shooter_shootrev){
  			shooterWheel = -.75;
+
  		 }
  		else if (not shooter_shoot&&shooter_shootrev){
  			shooterWheel = .75;
@@ -315,6 +307,25 @@
  			shooterWheel = 0.0;
  			}
  			pickupShooter->TankDrive(pickupWheel,shooterWheel);
+
+ 			shotreader=rwheel->GetPeriod();
+
+ 			 		 if(abs(shotreader)==0.0){
+ 			 			 shotspeed=1;
+ 			 		 }
+ 			 		else{
+ 					shotspeed=0;
+ 			 		}
+
+ 			  		if(shotspeed){
+ 			  			gamePad->SetRumble(Joystick::RumbleType::kRightRumble,1);
+ 			  			gamePad->SetRumble(Joystick::RumbleType::kLeftRumble,1);
+ 			  		}
+ 			  		else{
+ 			  			gamePad->SetRumble(Joystick::RumbleType::kRightRumble,0);
+ 			  		  	gamePad->SetRumble(Joystick::RumbleType::kLeftRumble,0);
+ 			  		}
+ 			  		SmartDashboard::PutNumber("shotreader",shotreader);
 //SHOOTER WHEEL
 
 
@@ -396,7 +407,7 @@ SmartDashboard::PutBoolean("STOOOOOPP!",stop_arm);
  			 				IMAQdxCloseCamera(session1);
 
  				frame2 = imaqCreateImage(IMAQ_IMAGE_RGB, 0);
- 		 						IMAQdxOpenCamera("cam2", IMAQdxCameraControlModeController, &session2);
+ 		 						IMAQdxOpenCamera("cam4", IMAQdxCameraControlModeController, &session2);
  		 						IMAQdxConfigureGrab(session2);
  		 						IMAQdxStartAcquisition(session2);
  	 					cam=FALSE;
@@ -462,7 +473,6 @@ SmartDashboard::PutBoolean("STOOOOOPP!",stop_arm);
  		SmartDashboard::PutNumber("auto_server", auto_server);
  		SmartDashboard::PutNumber("l_enc", l_enc);
  		SmartDashboard::PutNumber("r_enc", r_enc);
- 		SmartDashboard::PutNumber("shot_enc", shot_enc);
  		SmartDashboard::PutString("Frame Pistions",pistion_server);
  		SmartDashboard::PutString("Ramp Pistions",pistionramp_server);
  	 	SmartDashboard::PutNumber("shooterwheel", shotspeed);
