@@ -308,7 +308,7 @@
  			}
  			pickupShooter->TankDrive(pickupWheel,shooterWheel);
 
- 			shotreader=rwheel->GetPeriod();
+ 			shotreader=shooterWheel->GetPeriod();
 
  			 		 if(abs(shotreader)==0.0){
  			 			 shotspeed=1;
