@@ -17,7 +17,7 @@
 		bool underglow_button,underglow_prev,underglow_sel;
 	  	double shotreader;
 
-	 	double auto_F,auto_spin,auto_estop;//Encoder values
+	 	double auto_F,auto_spin,auto_estop,ayavg,r;//Encoder values
 	 	int r_enc,l_enc,arm_dir;
 		bool forward1,forward1low,to_ramp,spin,auto_fin;//things for auto
 
@@ -138,12 +138,15 @@
 		spin=0;
 		auto_fin=0;
 		cam=0;
+		r = .2 ; // the averaging ratio for the accelerometer readins in auton
+		ayavg=0.0;
 //AUTO
 }
 
  void AutonomousPeriodic()
 	{
 	 ay = accel-> GetY();
+	 ayavg = (1.0-r)*ayavg+r*ay;   // the smoothed, running average of ay...actually solving a DE with a pole at ir!
 		r_enc = abs(rwheel->GetRaw()/360);
 	 	l_enc = abs(lwheel->GetRaw()/360);
 
@@ -171,7 +174,7 @@
 				lwheel->Reset();
 					spin=TRUE;
 				}
-				else if((r_enc<=auto_estop)&&(l_enc<=auto_estop)&&(not(ay>=.15))&&(not auto_fin)){
+				else if((r_enc<=auto_estop)&&(l_enc<=auto_estop)&&(not(ayavg>=.05))&&(not auto_fin)){
 						rightgo=-.5;
 						leftgo=-.5;
 				}
@@ -206,7 +209,7 @@
 
 			SmartDashboard::PutNumber("r_enc", r_enc);
 		 	SmartDashboard::PutNumber("l_enc", l_enc);
-		 	SmartDashboard::PutNumber("ay", ay);
+		 	SmartDashboard::PutNumber("ayavg", ayavg);
 
 		 	/*if(not cam){
 		 	 				IMAQdxStopAcquisition(session2);
