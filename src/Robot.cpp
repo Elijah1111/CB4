@@ -1,13 +1,11 @@
 #include "WPILib.h"
 //#include <stdio.h>
 #include <unistd.h>
+#include<thread>
 /*      CB4 Robot Code, team 4601 (Canfield Ohio,the Circuit Birds)
  *
  *
  */
-  class Robot: public IterativeRobot
-  {
- private:
 	  	bool nitroL, nitroR,cam_button,cam_button1,ramp_in,ramp_out,cam,cam_switcher;  //DrC, for speed boost in tank drive
 	  	bool pickup_pickup, piston_button,frame_act,button_led, speedgood,piston_button_prev; //DrC
 
@@ -80,6 +78,10 @@
 	  	//const std::string autoNameCustom = "Low Bar";
 	  	const std::string autoNameNone = "NONE!";
 
+  class Robot: public IterativeRobot
+  {
+ private:
+
 	void RobotInit()
  		{
 	chooser->AddDefault(autoNameDefault, (void*)&autoNameDefault);
@@ -99,7 +101,6 @@
 		/*	if(autoSelected == autoNameCustom){
 				}
 			 else {
-
 			}*/
 
 
@@ -139,12 +140,10 @@
 	 	l_enc = abs(lwheel->GetRaw());
 
 	 		/*if(autoSelected == autoNameCustom){ //low bar
-
 					if((r_enc<=auto_F)&&(l_enc<=auto_F)&&not forward1low){
 					 rightgo=.85;
 					 leftgo=.85;
 					}
-
 				else if(not forward1low) {
 					 	rwheel->Reset();
 					 	lwheel->Reset();
@@ -171,10 +170,7 @@
 					leftgo=0;
 					auto_fin=1;
 				}
-
 	 				}
-
-
 	 		else*/ if(autoSelected == autoNameDefault){//forward
 	 			if((r_enc<=auto_F)&&(l_enc<=auto_F)&& not forward1){
 	 				 				rightgo=.85;
@@ -302,7 +298,6 @@ if(FULL){
 else{
 	rightgo=0;
 	leftgo=0;
-
 }*/
  		robotDrive->TankDrive(rightgo, leftgo);
 
@@ -424,43 +419,7 @@ SmartDashboard::PutBoolean("STOOOOOPP!2",stop_arm2);
 SmartDashboard::PutBoolean("STOOOOOPP!1",stop_arm1);
 
 //CAMERA CONTROL
- 		cam_button=leftDrive->GetRawButton(2);
- 	//	cam_button1=rightDrive->GetRawButton(2);
- 		cam_switcher=rightDrive->GetRawButton(1);
-
- 		if(not cam_switcher){
- 			if(not cam){
- 				IMAQdxStopAcquisition(session2);
- 			 			IMAQdxCloseCamera(session2);
-
- 			 			IMAQdxStopAcquisition(session1);
- 			 			 			 			IMAQdxCloseCamera(session1);
- 			 				frame1 = imaqCreateImage(IMAQ_IMAGE_RGB, 0);
- 			 		 						IMAQdxOpenCamera("cam4", IMAQdxCameraControlModeController, &session1);
- 			 		 						IMAQdxConfigureGrab(session1);
- 			 		 						IMAQdxStartAcquisition(session1);
- 				cam=TRUE;
- 			}
- 		IMAQdxGrab(session1, frame1, true, NULL);
-
- 			CameraServer::GetInstance()->SetImage(frame1);//Elmo
- 		}
-
- 		else{
- 			if(cam){
- 				IMAQdxStopAcquisition(session1);
- 			 				IMAQdxCloseCamera(session1);
-
- 				frame2 = imaqCreateImage(IMAQ_IMAGE_RGB, 0);
- 		 						IMAQdxOpenCamera("cam3", IMAQdxCameraControlModeController, &session2);
- 		 						IMAQdxConfigureGrab(session2);
- 		 						IMAQdxStartAcquisition(session2);
- 	 					cam=FALSE;
- 			}
- 	 					IMAQdxGrab(session2, frame2, true, NULL);
- 	 					 CameraServer::GetInstance()->SetImage(frame2);//BERT
- 		}
-
+std::thread(cameraserver);
 //CAM CONTROL
 
 
@@ -478,11 +437,12 @@ SmartDashboard::PutBoolean("STOOOOOPP!1",stop_arm1);
  		else{
  			underglow->Set(Relay::kOff);
  		}
- 		*/
+
  		underglow_button  = gamePad-> GetRawButton(3);
  		if(underglow_button){
- 		   underglow->Set(Relay::1
-
+ 		   underglow->Set(Relay::1)
+ 		}
+*/
 //SENSORS
  		ax = accel-> GetX();//DrC   Sensor Section : get orientation of the robot WRT field co-ordinates.
  		ay = accel-> GetY();
@@ -526,6 +486,44 @@ SmartDashboard::PutBoolean("STOOOOOPP!1",stop_arm1);
  	}
   };
  START_ROBOT_CLASS(Robot)
+  void cameraserver(){
+	 cam_button=leftDrive->GetRawButton(2);
+	  		cam_switcher=rightDrive->GetRawButton(1);
+
+	  		if(not cam_switcher){
+	  			if(not cam){
+	  				IMAQdxStopAcquisition(session2);
+	  			 			IMAQdxCloseCamera(session2);
+
+	  			 			IMAQdxStopAcquisition(session1);
+	  			 			 			 			IMAQdxCloseCamera(session1);
+	  			 				frame1 = imaqCreateImage(IMAQ_IMAGE_RGB, 0);
+	  			 		 						IMAQdxOpenCamera("cam4", IMAQdxCameraControlModeController, &session1);
+	  			 		 						IMAQdxConfigureGrab(session1);
+	  			 		 						IMAQdxStartAcquisition(session1);
+	  				cam=TRUE;
+	  			}
+	  		IMAQdxGrab(session1, frame1, true, NULL);
+
+	  			CameraServer::GetInstance()->SetImage(frame1);//Elmo
+	  		}
+
+	  		else{
+	  			if(cam){
+	  				IMAQdxStopAcquisition(session1);
+	  			 				IMAQdxCloseCamera(session1);
+
+	  				frame2 = imaqCreateImage(IMAQ_IMAGE_RGB, 0);
+	  		 						IMAQdxOpenCamera("cam3", IMAQdxCameraControlModeController, &session2);
+	  		 						IMAQdxConfigureGrab(session2);
+	  		 						IMAQdxStartAcquisition(session2);
+	  	 					cam=FALSE;
+	  			}
+	  	 					IMAQdxGrab(session2, frame2, true, NULL);
+	  	 					 CameraServer::GetInstance()->SetImage(frame2);//BERT
+	  		}
+
+ }
 /* Hardware map of the robot "Shadow"  (CB4)
  *
  *
